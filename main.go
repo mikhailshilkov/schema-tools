@@ -62,6 +62,17 @@ func compare(args []string) {
 			vs := validateTypes(&prop.TypeSpec, &newProp.TypeSpec, fmt.Sprintf("Resource %q input %q", resName, propName))
 			violations = append(violations, vs...)
 		}
+
+		for propName, prop := range res.Properties {
+			newProp, ok := newRes.Properties[propName]
+			if !ok {
+				violations = append(violations, fmt.Sprintf("Resource %q missing output %q", resName, propName))
+				continue
+			}
+
+			vs := validateTypes(&prop.TypeSpec, &newProp.TypeSpec, fmt.Sprintf("Resource %q output %q", resName, propName))
+			violations = append(violations, vs...)
+		}
 	}
 
 	for funcName, f := range schOld.Functions {
@@ -83,6 +94,17 @@ func compare(args []string) {
 			}
 
 			vs := validateTypes(&prop.TypeSpec, &newProp.TypeSpec, fmt.Sprintf("Function %q input %q", funcName, propName))
+			violations = append(violations, vs...)
+		}
+
+		for propName, prop := range f.Outputs.Properties {
+			newProp, ok := newFunc.Outputs.Properties[propName]
+			if !ok {
+				violations = append(violations, fmt.Sprintf("Function %q missing output %q", funcName, propName))
+				continue
+			}
+
+			vs := validateTypes(&prop.TypeSpec, &newProp.TypeSpec, fmt.Sprintf("Function %q output %q", funcName, propName))
 			violations = append(violations, vs...)
 		}
 	}
