@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pulumi/pulumi/pkg/v2/codegen"
-	"github.com/pulumi/pulumi/pkg/v2/codegen/schema"
+	"github.com/pulumi/pulumi/pkg/v3/codegen"
+	"github.com/pulumi/pulumi/pkg/v3/codegen/schema"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -140,6 +140,25 @@ func compare(args []string) {
 
 	for _, v := range violations {
 		fmt.Println(v)
+	}
+
+	var newResources []string
+	for resName := range schNew.Resources {
+		if _, ok := schOld.Resources[resName]; !ok {
+			newResources = append(newResources, resName)
+		}
+	}
+	for resName := range schNew.Functions {
+		if _, ok := schOld.Functions[resName]; !ok {
+			newResources = append(newResources, resName)
+		}
+	}
+
+	if len(newResources) > 0 {
+		fmt.Println("\nNew resources/functions:")
+		for _, v := range newResources {
+			fmt.Println(v)
+		}
 	}
 }
 
