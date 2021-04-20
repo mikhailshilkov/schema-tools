@@ -22,6 +22,7 @@ func main() {
 		panic(fmt.Sprintf("Unknown command %+v", os.Args))
 	}
 }
+
 func compare(args []string) {
 	provider := args[0]
 	oldCommit := args[1]
@@ -131,7 +132,6 @@ func compare(args []string) {
 	switch len(violations) {
 	case 0:
 		fmt.Println("Looking good! No breaking changes found.")
-		return
 	case 1:
 		fmt.Println("Found 1 breaking change:")
 	default:
@@ -159,6 +159,12 @@ func compare(args []string) {
 		for _, v := range newResources {
 			fmt.Println(v)
 		}
+	} else {
+		fmt.Println("No new resources/functions.")
+	}
+
+	if provider == "azure-native" {
+		compareAzureMetadata(args[1:])
 	}
 }
 
@@ -254,6 +260,90 @@ func downloadSchema(schemaUrl string) schema.PackageSpec {
 	}
 
 	return sch
+}
+
+func compareAzureMetadata(args []string) {
+	provider := "azure-native"
+	oldCommit := args[0]
+	newCommit := args[1]
+
+	metaUrlOld := fmt.Sprintf("https://raw.githubusercontent.com/pulumi/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/metadata.json", provider, oldCommit)
+	metaUrlNew := fmt.Sprintf("https://raw.githubusercontent.com/pulumi/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/metadata.json", provider, newCommit)
+	metaOld := downloadAzureMeta(metaUrlOld)
+	metaNew := downloadAzureMeta(metaUrlNew)
+
+	var changes []string
+	for resName, res := range metaOld.Resources {
+		newRes, ok := metaNew.Resources[resName]
+		if !ok {
+			changes = append(changes, fmt.Sprintf("Resource %q missing", resName))
+			continue
+		}
+
+		if res.APIVersion != newRes.APIVersion {
+			changes = append(changes, fmt.Sprintf("Resource %q changed from %s to %s", resName, res.APIVersion, newRes.APIVersion))
+		}
+	}
+
+	for funcName, f := range metaOld.Invokes {
+		newFunc, ok := metaNew.Invokes[funcName]
+		if !ok {
+			changes = append(changes, fmt.Sprintf("Function %q missing", funcName))
+			continue
+		}
+
+		if f.APIVersion != newFunc.APIVersion {
+			changes = append(changes, fmt.Sprintf("Resource %q changed from %s to %s", funcName, f.APIVersion, newFunc.APIVersion))
+		}
+	}
+
+	switch len(changes) {
+	case 0:
+		fmt.Println("Looking good! No API changes found.")
+		return
+	case 1:
+		fmt.Println("Found 1 API change:")
+	default:
+		fmt.Printf("Found %d API changes:\n", len(changes))
+	}
+
+	for _, v := range changes {
+		fmt.Println(v)
+	}
+}
+
+
+func downloadAzureMeta(schemaUrl string) azureAPIMetadata {
+	resp, err := http.Get(schemaUrl)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	var meta azureAPIMetadata
+	if err = json.Unmarshal(body, &meta); err != nil {
+		panic(err)
+	}
+
+	return meta
+}
+
+type azureAPIMetadata struct {
+	Resources map[string]azureAPIResource `json:"resources"`
+	Invokes   map[string]azureAPIInvoke   `json:"invokes"`
+}
+
+type azureAPIResource struct {
+	APIVersion string `json:"apiVersion"`
+}
+
+type azureAPIInvoke struct {
+	APIVersion string `json:"apiVersion"`
 }
 
 func readSchema(schemaPath string) schema.PackageSpec {
