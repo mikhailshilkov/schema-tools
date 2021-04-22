@@ -41,9 +41,17 @@ func compare(args []string) {
 	//schOld := readSchema(schemaPathOld)
 
 	schemaUrlOld := fmt.Sprintf("https://raw.githubusercontent.com/pulumi/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/schema.json", provider, oldCommit)
-	schemaUrlNew := fmt.Sprintf("https://raw.githubusercontent.com/pulumi/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/schema.json", provider, newCommit)
 	schOld := downloadSchema(schemaUrlOld)
-	schNew := downloadSchema(schemaUrlNew)
+
+	var schNew schema.PackageSpec
+
+	if strings.HasPrefix(newCommit, "--local-path=")  {
+		parts := strings.Split(newCommit, "=")
+		schNew = loadLocalPackageSpec(parts[1])
+	} else {
+		schemaUrlNew := fmt.Sprintf("https://raw.githubusercontent.com/pulumi/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/schema.json", provider, newCommit)
+		schNew = downloadSchema(schemaUrlNew)
+	}
 
 	var violations []string
 	for resName, res := range schOld.Resources {
@@ -250,6 +258,20 @@ func downloadSchema(schemaUrl string) schema.PackageSpec {
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	var sch schema.PackageSpec
+	if err = json.Unmarshal(body, &sch); err != nil {
+		panic(err)
+	}
+
+	return sch
+}
+
+func loadLocalPackageSpec(filePath string) schema.PackageSpec {
+	body, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		panic(err)
 	}
