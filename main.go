@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/mikhailshilkov/schema-tools/version"
 	"github.com/pulumi/pulumi/pkg/v3/codegen"
 	"github.com/pulumi/pulumi/pkg/v3/codegen/schema"
 	"io/ioutil"
@@ -18,6 +19,8 @@ func main() {
 		compare(os.Args[2:])
 	case "stats":
 		stats(os.Args[2:])
+	case "version":
+		fmt.Println(version.Version)
 	default:
 		panic(fmt.Sprintf("Unknown command %+v", os.Args))
 	}
