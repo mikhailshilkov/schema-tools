@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -50,7 +51,11 @@ func compare(args []string) {
 
 	if strings.HasPrefix(newCommit, "--local-path=")  {
 		parts := strings.Split(newCommit, "=")
-		schNew = loadLocalPackageSpec(parts[1])
+		schemaPath, err := filepath.Abs(parts[1])
+		if err != nil {
+			panic("unable to construct absolute path to schema.json")
+		}
+		schNew = loadLocalPackageSpec(schemaPath)
 	} else {
 		schemaUrlNew := fmt.Sprintf("https://raw.githubusercontent.com/pulumi/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/schema.json", provider, newCommit)
 		schNew = downloadSchema(schemaUrlNew)
