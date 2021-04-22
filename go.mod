@@ -1,4 +1,4 @@
-module schema-tools
+module github.com/mikhailshilkov/schema-tools
 
 go 1.16
 
