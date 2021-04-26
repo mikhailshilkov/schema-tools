@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 )
@@ -49,7 +50,13 @@ func compare(args []string) {
 
 	var schNew schema.PackageSpec
 
-	if strings.HasPrefix(newCommit, "--local-path=")  {
+	if newCommit == "--local" {
+		usr, _ := user.Current()
+		basePath := fmt.Sprintf("%s/go/src/github.com/pulumi", usr.HomeDir)
+		path := fmt.Sprintf("pulumi-%s/provider/cmd/pulumi-resource-%[1]s", provider)
+		schemaPath := filepath.Join(basePath, path, "schema.json")
+		schNew = loadLocalPackageSpec(schemaPath)
+	} else if strings.HasPrefix(newCommit, "--local-path=") {
 		parts := strings.Split(newCommit, "=")
 		schemaPath, err := filepath.Abs(parts[1])
 		if err != nil {
@@ -200,10 +207,10 @@ func validateTypes(old *schema.TypeSpec, new *schema.TypeSpec, prefix string) (v
 		violations = append(violations, fmt.Sprintf("%s type changed from %q to %q", prefix, old.Type, new.Type))
 	}
 	if old.Ref != new.Ref {
-		violations = append(violations, fmt.Sprintf("%s type changed from %q to %q", prefix, old.Type, new.Type))
+		violations = append(violations, fmt.Sprintf("%s type changed from %q to %q", prefix, old.Ref, new.Ref))
 	}
-	violations = append(violations, validateTypes(old.Items, new.Items, prefix + " items")...)
-	violations = append(violations, validateTypes(old.AdditionalProperties, new.AdditionalProperties, prefix + " additional properties")...)
+	violations = append(violations, validateTypes(old.Items, new.Items, prefix+" items")...)
+	violations = append(violations, validateTypes(old.AdditionalProperties, new.AdditionalProperties, prefix+" additional properties")...)
 	return
 }
 
@@ -221,7 +228,7 @@ func stats(args []string) {
 
 	uniques := codegen.NewStringSet()
 	visitedTypes := codegen.NewStringSet()
-	var propCount func(string)int;
+	var propCount func(string) int
 	propCount = func(typeName string) int {
 		if visitedTypes.Has(typeName) {
 			return 0
@@ -298,9 +305,19 @@ func compareAzureMetadata(args []string) {
 	newCommit := args[1]
 
 	metaUrlOld := fmt.Sprintf("https://raw.githubusercontent.com/pulumi/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/metadata.json", provider, oldCommit)
-	metaUrlNew := fmt.Sprintf("https://raw.githubusercontent.com/pulumi/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/metadata.json", provider, newCommit)
 	metaOld := downloadAzureMeta(metaUrlOld)
-	metaNew := downloadAzureMeta(metaUrlNew)
+
+	var metaNew azureAPIMetadata
+	if newCommit == "--local" {
+		usr, _ := user.Current()
+		basePath := fmt.Sprintf("%s/go/src/github.com/pulumi", usr.HomeDir)
+		path := fmt.Sprintf("pulumi-%s/provider/cmd/pulumi-resource-%[1]s", provider)
+		metaPath := filepath.Join(basePath, path, "metadata.json")
+		metaNew = loadLocalAzureMeta(metaPath)
+	} else {
+		metaUrl := fmt.Sprintf("https://raw.githubusercontent.com/pulumi/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/metadata.json", provider, newCommit)
+		metaNew = downloadAzureMeta(metaUrl)
+	}
 
 	var changes []string
 	for resName, res := range metaOld.Resources {
@@ -342,7 +359,6 @@ func compareAzureMetadata(args []string) {
 	}
 }
 
-
 func downloadAzureMeta(schemaUrl string) azureAPIMetadata {
 	resp, err := http.Get(schemaUrl)
 	if err != nil {
@@ -351,6 +367,20 @@ func downloadAzureMeta(schemaUrl string) azureAPIMetadata {
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	var meta azureAPIMetadata
+	if err = json.Unmarshal(body, &meta); err != nil {
+		panic(err)
+	}
+
+	return meta
+}
+
+func loadLocalAzureMeta(filePath string) azureAPIMetadata {
+	body, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		panic(err)
 	}
@@ -374,20 +404,6 @@ type azureAPIResource struct {
 
 type azureAPIInvoke struct {
 	APIVersion string `json:"apiVersion"`
-}
-
-func readSchema(schemaPath string) schema.PackageSpec {
-	schemaBytes, err := ioutil.ReadFile(schemaPath)
-	if err != nil {
-		panic(err)
-	}
-
-	var sch schema.PackageSpec
-	if err = json.Unmarshal(schemaBytes, &sch); err != nil {
-		panic(err)
-	}
-
-	return sch
 }
 
 func versionlessName(name string) string {
