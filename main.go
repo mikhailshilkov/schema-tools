@@ -314,6 +314,13 @@ func compareAzureMetadata(args []string) {
 		path := fmt.Sprintf("pulumi-%s/provider/cmd/pulumi-resource-%[1]s", provider)
 		metaPath := filepath.Join(basePath, path, "metadata.json")
 		metaNew = loadLocalAzureMeta(metaPath)
+	} else if strings.HasPrefix(newCommit, "--local-path=") {
+		path := strings.Replace(strings.Split(newCommit, "=")[1], "schema.json", "metadata.json", 1)
+		metaPath, err := filepath.Abs(path)
+		if err != nil {
+			panic("unable to construct absolute path to schema.json")
+		}
+		metaNew = loadLocalAzureMeta(metaPath)
 	} else {
 		metaUrl := fmt.Sprintf("https://raw.githubusercontent.com/pulumi/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/metadata.json", provider, newCommit)
 		metaNew = downloadAzureMeta(metaUrl)
