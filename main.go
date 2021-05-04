@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -179,6 +180,7 @@ func compare(args []string) {
 
 	if len(newResources) > 0 {
 		fmt.Println("\nNew resources/functions:")
+		sort.Strings(newResources)
 		for _, v := range newResources {
 			fmt.Println(v)
 		}
