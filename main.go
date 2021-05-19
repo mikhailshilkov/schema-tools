@@ -163,9 +163,8 @@ func compare(args []string) {
 	}
 
 	var violationDetails []string
-	if len(violations) > 1000 {
-		violationDetails = make([]string, 1000)
-		copy(violations[0:999], violationDetails[:])
+	if len(violations) > 500 {
+		violationDetails = violations[0:499]
 	} else {
 		violationDetails = violations
 	}
