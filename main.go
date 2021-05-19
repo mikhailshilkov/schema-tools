@@ -162,7 +162,15 @@ func compare(args []string) {
 		fmt.Printf("Found %d breaking changes:\n", len(violations))
 	}
 
-	for _, v := range violations {
+	var violationDetails []string
+	if len(violations) > 1000 {
+		violationDetails = make([]string, 1000)
+		copy(violations[0:999], violationDetails[:])
+	} else {
+		violationDetails = violations
+	}
+
+	for _, v := range violationDetails {
 		fmt.Println(v)
 	}
 
