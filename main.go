@@ -370,6 +370,12 @@ func compareAzureMetadata(args []string) {
 		}
 	}
 
+	for resName := range metaNew.Resources {
+		if _, ok := metaOld.Resources[resName]; !ok {
+			changes = append(changes, fmt.Sprintf("New resource %q", resName))
+		}
+	}
+
 	switch len(changes) {
 	case 0:
 		fmt.Println("Looking good! No API changes found.")
