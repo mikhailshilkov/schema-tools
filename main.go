@@ -173,7 +173,7 @@ func compare(args []string) {
 		fmt.Println(v)
 	}
 
-	var newResources []string
+	var newResources, newFunctions []string
 	for resName := range schNew.Resources {
 		if _, ok := schOld.Resources[resName]; !ok {
 			newResources = append(newResources, resName)
@@ -181,17 +181,27 @@ func compare(args []string) {
 	}
 	for resName := range schNew.Functions {
 		if _, ok := schOld.Functions[resName]; !ok {
-			newResources = append(newResources, resName)
+			newFunctions = append(newFunctions, resName)
 		}
 	}
 
 	if len(newResources) > 0 {
-		fmt.Println("\nNew resources/functions:")
+		fmt.Println("\n#### New resources:\n")
 		sort.Strings(newResources)
 		for _, v := range newResources {
-			fmt.Println(v)
+			fmt.Printf("- `%s`\n", v)
 		}
-	} else {
+	}
+
+	if len(newResources) > 0 {
+		fmt.Println("\n#### New functions:\n")
+		sort.Strings(newResources)
+		for _, v := range newResources {
+			fmt.Printf("- `%s`\n", v)
+		}
+	}
+
+	if len(newResources) == 0 && len(newFunctions) == 0 {
 		fmt.Println("No new resources/functions.")
 	}
 
