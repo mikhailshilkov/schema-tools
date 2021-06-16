@@ -257,12 +257,12 @@ func compare(args []string) {
 	var newResources, newFunctions []string
 	for resName := range schNew.Resources {
 		if _, ok := schOld.Resources[resName]; !ok {
-			newResources = append(newResources, resName)
+			newResources = append(newResources, formatName(provider, resName))
 		}
 	}
 	for resName := range schNew.Functions {
 		if _, ok := schOld.Functions[resName]; !ok {
-			newFunctions = append(newFunctions, resName)
+			newFunctions = append(newFunctions, formatName(provider, resName))
 		}
 	}
 
@@ -291,6 +291,10 @@ func compare(args []string) {
 	}
 }
 
+func formatName(provider, s string) string {
+	return strings.ReplaceAll(strings.TrimPrefix(s, fmt.Sprintf("%s:", provider)), ":", ".")
+}
+
 func validateTypes(old *schema.TypeSpec, new *schema.TypeSpec, prefix string) (violations []string) {
 	switch {
 	case old == nil && new == nil:
@@ -303,11 +307,16 @@ func validateTypes(old *schema.TypeSpec, new *schema.TypeSpec, prefix string) (v
 		return
 	}
 
-	if old.Type != new.Type {
-		violations = append(violations, fmt.Sprintf("%s type changed from %q to %q", prefix, old.Type, new.Type))
+	oldType := old.Type
+	if old.Ref != "" {
+		oldType = old.Ref
 	}
-	if old.Ref != new.Ref {
-		violations = append(violations, fmt.Sprintf("%s type changed from %q to %q", prefix, old.Ref, new.Ref))
+	newType := new.Type
+	if new.Ref != "" {
+		newType = new.Ref
+	}
+	if oldType != newType {
+		violations = append(violations, fmt.Sprintf("%s type changed from %q to %q", prefix, oldType, newType))
 	}
 	violations = append(violations, validateTypes(old.Items, new.Items, prefix+" items")...)
 	violations = append(violations, validateTypes(old.AdditionalProperties, new.AdditionalProperties, prefix+" additional properties")...)
@@ -435,7 +444,7 @@ func compareAzureMetadata(args []string) {
 		}
 
 		if res.APIVersion != newRes.APIVersion {
-			changes = append(changes, fmt.Sprintf("Resource %q changed from %s to %s", resName, res.APIVersion, newRes.APIVersion))
+			changes = append(changes, fmt.Sprintf("Change in %q from %s to %s", resName, res.APIVersion, newRes.APIVersion))
 		}
 	}
 
@@ -447,7 +456,7 @@ func compareAzureMetadata(args []string) {
 		}
 
 		if f.APIVersion != newFunc.APIVersion {
-			changes = append(changes, fmt.Sprintf("Resource %q changed from %s to %s", funcName, f.APIVersion, newFunc.APIVersion))
+			changes = append(changes, fmt.Sprintf("Change in function %q from %s to %s", funcName, f.APIVersion, newFunc.APIVersion))
 		}
 	}
 
@@ -457,14 +466,16 @@ func compareAzureMetadata(args []string) {
 		}
 	}
 
+	fmt.Println()
+	sort.Strings(changes)
 	switch len(changes) {
 	case 0:
 		fmt.Println("Looking good! No API changes found.")
 		return
 	case 1:
-		fmt.Println("Found 1 API change:")
+		fmt.Println("#### Found 1 API change:\n")
 	default:
-		fmt.Printf("Found %d API changes:\n", len(changes))
+		fmt.Printf("#### Found %d API changes:\n\n", len(changes))
 	}
 
 	for _, v := range changes {
