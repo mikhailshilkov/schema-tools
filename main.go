@@ -135,7 +135,9 @@ func compare(args []string) {
 		org = "pulumi"
 	}
 
-	schemaUrlOld := fmt.Sprintf("https://raw.githubusercontent.com/%s/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/schema.json", org, provider, oldCommit)
+
+	schemaUrlOld := fmt.Sprintf("https://raw.githubusercontent.com/%s/pulumi-%s/%s/provider/cmd/pulumi-resource-%[2]s/schema.json", org, provider, oldCommit)
+	fmt.Println(schemaUrlOld)
 	schOld := downloadSchema(schemaUrlOld)
 
 	var schNew schema.PackageSpec
@@ -154,7 +156,7 @@ func compare(args []string) {
 		}
 		schNew = loadLocalPackageSpec(schemaPath)
 	} else {
-		schemaUrlNew := fmt.Sprintf("https://raw.githubusercontent.com/%s/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/schema.json", org, provider, newCommit)
+		schemaUrlNew := fmt.Sprintf("https://raw.githubusercontent.com/%s/pulumi-%s/%s/provider/cmd/pulumi-resource-%[2]s/schema.json", org, provider, newCommit)
 		schNew = downloadSchema(schemaUrlNew)
 	}
 
