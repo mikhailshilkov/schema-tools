@@ -6,9 +6,10 @@ builds:
       - windows
       - darwin
     ldflags:
-      - -X github.com/mikhailshilkov/schema-tools/version.Version={{.Tag}}
+      - -X github.com/mikhailshilkov/schema-tools/pkg/version.Version={{.Tag}}
     goarch:
       - amd64
+      - arm64
     binary: schema-tools
     main: ./main.go
 archives:

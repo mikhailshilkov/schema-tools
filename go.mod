@@ -2,7 +2,11 @@ module github.com/mikhailshilkov/schema-tools
 
 go 1.17
 
-require github.com/pulumi/pulumi/pkg/v3 v3.32.0
+require (
+	github.com/pulumi/pulumi/pkg/v3 v3.32.0
+	github.com/spf13/cobra v1.4.0
+)
+
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
