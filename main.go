@@ -285,10 +285,6 @@ func compare(args []string) {
 	if len(newResources) == 0 && len(newFunctions) == 0 {
 		fmt.Println("No new resources/functions.")
 	}
-
-	if provider == "azure-native" {
-		compareAzureMetadata(args[1:])
-	}
 }
 
 func formatName(provider, s string) string {
@@ -406,128 +402,6 @@ func loadLocalPackageSpec(filePath string) schema.PackageSpec {
 	}
 
 	return sch
-}
-
-func compareAzureMetadata(args []string) {
-	provider := "azure-native"
-	oldCommit := args[0]
-	newCommit := args[1]
-
-	metaUrlOld := fmt.Sprintf("https://raw.githubusercontent.com/pulumi/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/metadata.json", provider, oldCommit)
-	metaOld := downloadAzureMeta(metaUrlOld)
-
-	var metaNew azureAPIMetadata
-	if newCommit == "--local" {
-		usr, _ := user.Current()
-		basePath := fmt.Sprintf("%s/go/src/github.com/pulumi", usr.HomeDir)
-		path := fmt.Sprintf("pulumi-%s/provider/cmd/pulumi-resource-%[1]s", provider)
-		metaPath := filepath.Join(basePath, path, "metadata.json")
-		metaNew = loadLocalAzureMeta(metaPath)
-	} else if strings.HasPrefix(newCommit, "--local-path=") {
-		path := strings.Replace(strings.Split(newCommit, "=")[1], "schema.json", "metadata.json", 1)
-		metaPath, err := filepath.Abs(path)
-		if err != nil {
-			panic("unable to construct absolute path to schema.json")
-		}
-		metaNew = loadLocalAzureMeta(metaPath)
-	} else {
-		metaUrl := fmt.Sprintf("https://raw.githubusercontent.com/pulumi/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/metadata.json", provider, newCommit)
-		metaNew = downloadAzureMeta(metaUrl)
-	}
-
-	var changes []string
-	for resName, res := range metaOld.Resources {
-		newRes, ok := metaNew.Resources[resName]
-		if !ok {
-			changes = append(changes, fmt.Sprintf("Resource %q missing", resName))
-			continue
-		}
-
-		if res.APIVersion != newRes.APIVersion {
-			changes = append(changes, fmt.Sprintf("Change in %q from %s to %s", resName, res.APIVersion, newRes.APIVersion))
-		}
-	}
-
-	for funcName, f := range metaOld.Invokes {
-		newFunc, ok := metaNew.Invokes[funcName]
-		if !ok {
-			changes = append(changes, fmt.Sprintf("Function %q missing", funcName))
-			continue
-		}
-
-		if f.APIVersion != newFunc.APIVersion {
-			changes = append(changes, fmt.Sprintf("Change in function %q from %s to %s", funcName, f.APIVersion, newFunc.APIVersion))
-		}
-	}
-
-	for resName := range metaNew.Resources {
-		if _, ok := metaOld.Resources[resName]; !ok {
-			changes = append(changes, fmt.Sprintf("New resource %q", resName))
-		}
-	}
-
-	fmt.Println()
-	sort.Strings(changes)
-	switch len(changes) {
-	case 0:
-		fmt.Println("Looking good! No API changes found.")
-		return
-	case 1:
-		fmt.Println("#### Found 1 API change:\n")
-	default:
-		fmt.Printf("#### Found %d API changes:\n\n", len(changes))
-	}
-
-	for _, v := range changes {
-		fmt.Println(v)
-	}
-}
-
-func downloadAzureMeta(schemaUrl string) azureAPIMetadata {
-	resp, err := http.Get(schemaUrl)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-
-	var meta azureAPIMetadata
-	if err = json.Unmarshal(body, &meta); err != nil {
-		panic(err)
-	}
-
-	return meta
-}
-
-func loadLocalAzureMeta(filePath string) azureAPIMetadata {
-	body, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		panic(err)
-	}
-
-	var meta azureAPIMetadata
-	if err = json.Unmarshal(body, &meta); err != nil {
-		panic(err)
-	}
-
-	return meta
-}
-
-type azureAPIMetadata struct {
-	Resources map[string]azureAPIResource `json:"resources"`
-	Invokes   map[string]azureAPIInvoke   `json:"invokes"`
-}
-
-type azureAPIResource struct {
-	APIVersion string `json:"apiVersion"`
-}
-
-type azureAPIInvoke struct {
-	APIVersion string `json:"apiVersion"`
 }
 
 func versionlessName(name string) string {
