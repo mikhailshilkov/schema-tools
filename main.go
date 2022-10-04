@@ -3,9 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/mikhailshilkov/schema-tools/version"
-	"github.com/pulumi/pulumi/pkg/v3/codegen"
-	"github.com/pulumi/pulumi/pkg/v3/codegen/schema"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -13,6 +10,10 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/mikhailshilkov/schema-tools/version"
+	"github.com/pulumi/pulumi/pkg/v3/codegen"
+	"github.com/pulumi/pulumi/pkg/v3/codegen/schema"
 )
 
 func main() {
@@ -79,10 +80,10 @@ func validateTypes2(sch *schema.PackageSpec, old *schema.TypeSpec, new *schema.T
 	case old == nil && new == nil:
 		return
 	case old != nil && new == nil:
-		violations = append(violations, fmt.Sprintf("had no type but now has %+v", new))
+		violations = append(violations, fmt.Sprintf("had %+v but now has no type", old))
 		return
 	case old == nil && new != nil:
-		violations = append(violations, fmt.Sprintf("had %+v but now has no type", new))
+		violations = append(violations, fmt.Sprintf("had no type but now has %+v", new))
 		return
 	}
 
@@ -300,10 +301,10 @@ func validateTypes(old *schema.TypeSpec, new *schema.TypeSpec, prefix string) (v
 	case old == nil && new == nil:
 		return
 	case old != nil && new == nil:
-		violations = append(violations, fmt.Sprintf("had no type but now has %+v", new))
+		violations = append(violations, fmt.Sprintf("had %+v but now has no type", old))
 		return
 	case old == nil && new != nil:
-		violations = append(violations, fmt.Sprintf("had %+v but now has no type", new))
+		violations = append(violations, fmt.Sprintf("had no type but now has %+v", new))
 		return
 	}
 
