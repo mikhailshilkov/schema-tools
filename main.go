@@ -115,6 +115,7 @@ func compare(args []string) {
 	provider := args[0]
 	oldCommit := args[1]
 	newCommit := args[2]
+
 	//provider := "aws"
 	//commit := "4379b20d1aab018bac69c6d86c4219b08f8d3ec4"
 	//provider := "azure"
@@ -128,7 +129,15 @@ func compare(args []string) {
 	//schemaPathOld := filepath.Join(basePath, path, "schema-master.json")
 	//schOld := readSchema(schemaPathOld)
 
-	schemaUrlOld := fmt.Sprintf("https://raw.githubusercontent.com/pulumi/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/schema.json", provider, oldCommit)
+	var org string
+	if len(args) == 4 {
+		org = args[3]
+	} else {
+		org = "pulumi"
+	}
+
+	schemaUrlOld := fmt.Sprintf("https://raw.githubusercontent.com/%s/pulumi-%s/%s/provider/cmd/pulumi-resource-%[2]s/schema.json", org, provider, oldCommit)
+	fmt.Println(schemaUrlOld)
 	schOld := downloadSchema(schemaUrlOld)
 
 	var schNew schema.PackageSpec
@@ -147,7 +156,7 @@ func compare(args []string) {
 		}
 		schNew = loadLocalPackageSpec(schemaPath)
 	} else {
-		schemaUrlNew := fmt.Sprintf("https://raw.githubusercontent.com/pulumi/pulumi-%s/%s/provider/cmd/pulumi-resource-%[1]s/schema.json", provider, newCommit)
+		schemaUrlNew := fmt.Sprintf("https://raw.githubusercontent.com/%s/pulumi-%s/%s/provider/cmd/pulumi-resource-%[2]s/schema.json", org, provider, newCommit)
 		schNew = downloadSchema(schemaUrlNew)
 	}
 
